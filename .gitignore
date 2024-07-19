@@ -1,3 +1,12 @@
+# Basic GitIgnore
+.clangd
+*.tmp
+*.swp
+.idea
+.vscode
+build
+cmake
+
 # Prerequisites
 *.d
 
