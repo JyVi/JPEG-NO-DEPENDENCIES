@@ -39,3 +39,10 @@ cmake
 *.exe
 *.out
 *.app
+
+# images
+*.png
+*.jpeg
+*.jpg
+*.svg
+*.xcf

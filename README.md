@@ -14,3 +14,7 @@ I am going to try to rush it in 1 or 2 week (I hope so)
 
 InstallDependencies.sh is an executable file for installing the relative 
 dependencies of the project, especially the SDL2 dependencies and cmake
+
+
+to append when trying to compile for SDL3 rather than SDL2
+$(pkg-config --cflags sdl3) $(pkg-config --libs sdl3)
