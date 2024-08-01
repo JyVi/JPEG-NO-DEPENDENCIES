@@ -18,3 +18,6 @@ dependencies of the project, especially the SDL2 dependencies and cmake
 
 to append when trying to compile for SDL3 rather than SDL2
 $(pkg-config --cflags sdl3) $(pkg-config --libs sdl3)
+
+
+Thanks to the SDL discord from orlac and empyreanx
