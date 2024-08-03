@@ -1,4 +1,5 @@
-#include "ImageEssential.hxx"
+#include "../DataStructure/ImageEssential.hxx"
+#include "Step1.hh"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_pixels.h>
 #include <SDL3/SDL_stdinc.h>
@@ -28,12 +29,13 @@ void printPixelFormatDetails(const SDL_PixelFormatDetails* details) {
               << std::endl;
 }
 
+
 int main(int argc, char** argv)
 {
     if (argc >= 2)
         std::cout << argv[1] << std::endl;
     else
-     return 1;
+        return 1;
 
     SDL_Surface *surf = IMG_Load(argv[1]);
     SDL_PixelFormat *format = &surf->format;
@@ -45,12 +47,16 @@ int main(int argc, char** argv)
     std::shared_ptr<std::vector<Uint8>> pix = 
         std::make_shared<std::vector<Uint8>>
             (static_cast<Uint8*>(surf->pixels),
-             static_cast<Uint8*>(surf->pixels) + surf->h * surf->w*3);
+             static_cast<Uint8*>(surf->pixels) + surf->h * surf->w * 3);
 
-    ImageEssential<Uint8> ImageEssential(surf->w, surf->h, surf->format, pix);
+    ImageEssential<Uint8> essence = ImageEssential<Uint8>(surf->w * 3, surf->h,
+                                                          surf->format, 
+                                                          std::move(pix));
 
+    Splitted testySplit;
+    std::shared_ptr<BlockMatrix> vec = channelSplitting(essence.getPixels(), essence.getWidth(), essence.getHeight(), 3, 3);
+    testySplit.setChannels(vec);
     SDL_DestroySurface(surf);
-
 
     return 0;
 }

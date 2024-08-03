@@ -1,15 +1,45 @@
-#include "ImageEssential.hxx"
-#include <SDL3/SDL.h>
+#pragma once
+//#include "./DataStructure.hh"
 #include <SDL3/SDL_pixels.h>
-#include <SDL3/SDL_stdinc.h>
-#include <SDL3/SDL_surface.h>
-#include <SDL3_image/SDL_image.h>
 #include <memory>
 #include <vector>
 
+
+/*
+ * @class ImageEssential
+ *
+ * @brief First abstraction of an Image by stocking its pixel matrix 
+ * to compress and decrompress it later
+ * */
+template<typename T>
+class ImageEssential
+{
+    public:
+        ImageEssential(int w, int h, SDL_PixelFormat format, std::shared_ptr<std::vector<T>> pixels);
+        int getWidth();
+        int getHeight();
+
+        void setWidth();
+        void setHeight();
+
+        SDL_PixelFormat getPixelFormat();
+        void setPixelFormat();
+        /* Is not a typical getter, data may be modified */
+        std::shared_ptr<std::vector<T>> getPixels();
+        
+    private:
+        int width;
+        int height;
+        /* SDL enum is used for compbatibilities reason */
+        SDL_PixelFormat format;
+        /* the actual pixel matrix*/
+        std::shared_ptr<std::vector<T>> pixels;
+};
+
+
 // TODO: what to do when size is 24 or is a float
 template<typename T>
-std::shared_ptr<std::vector<T>> getPixelVector2(void *surfaceArray,
+std::shared_ptr<std::vector<T>> getPixelVector(void *surfaceArray,
                                                SDL_PixelFormat format,
                                                size_t size)
 {
@@ -38,7 +68,7 @@ std::shared_ptr<std::vector<T>> getPixelVector2(void *surfaceArray,
     }
 }
 
-/*
+
 template<typename T>
 ImageEssential<T>::ImageEssential(int w, 
                                   int h, 
@@ -68,4 +98,3 @@ std::shared_ptr<std::vector<T>> ImageEssential<T>::getPixels()
 {
     return this->pixels;
 }
-*/
