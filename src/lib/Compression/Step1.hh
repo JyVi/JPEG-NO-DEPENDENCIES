@@ -1,6 +1,5 @@
 #pragma once
 #include "../DataStructure/ImageEssential.hxx"
-#include <iostream>
 #include <cassert>
 #include <utility>
 #include <array>
@@ -8,6 +7,9 @@
 #include <memory>
 
 typedef std::vector<std::shared_ptr<std::vector<std::unique_ptr<std::array<Uint8, 64>>>>> BlockMatrix;
+// Type alias for the function pointer
+template<typename T>
+using ValueFunction = Uint8(*)(int offset, int channel, size_t i, size_t j, size_t k, size_t n, int w, std::shared_ptr<std::vector<T>> vec);
 
 class Splitted
 {
@@ -20,16 +22,51 @@ class Splitted
         std::shared_ptr<BlockMatrix> channels;
 };
 
+/*
+ * TODO replace this to be a function pointer so its lighter on cpu without 
+ * testing offset every time, only once, 
+ * if (offset != 0)
+ *      funptr* = vec[(i * 8 + k) * w + (j * 8 + n * offset + channel)]
+ * else
+ *      // no offset 
+ *      funptr* = (vec[(i * 8 + k) * w + (j * 8 + n)] >> 8 * channel) & 0xff
+ * */
 template<typename T>
-Uint8 determineValue(int offset, int channel, size_t i, size_t j, 
-                       size_t k, size_t n, int w, std::shared_ptr<std::vector<T>> vec)
+Uint8 determineValueWithOffset(int offset, int channel, size_t i, 
+                               size_t j, size_t k, size_t n, int w, 
+                               std::shared_ptr<std::vector<T>> vec)
 {
     if (offset != 0)
         return (*vec)[(i + k) * w + (j + n * offset + channel)];
-    assert((i + k) * w + (j + n) < vec->size() && "Out of bound");
-    return ((*vec)[(i + k) * w + (j + n)] >> 8 * channel) & 0xff;
+    size_t position = (i + k) * w + (j + n);
+    assert(position < vec->size() && "Out of bound");
+    return ((*vec)[position] >> 8 * channel) & 0xff;
 }
 
+template<typename T>
+Uint8 determineValueWithoutOffset(int offset, int channel, size_t i, 
+                                  size_t j, size_t k, size_t n, int w, 
+                                  std::shared_ptr<std::vector<T>> vec)
+{
+    size_t position = (i + k) * w + (j + n);
+    assert(position < vec->size() && "Out of bound withoutOffset");
+    return ((*vec)[position] >> 8 * channel) & 0xff;
+}
+
+template<typename T>
+ValueFunction<T> getFunctionPtr(int offset)
+{
+    if (offset != 0)
+        return &determineValueWithOffset<T>;
+    return &determineValueWithoutOffset<T>;
+}
+
+/*
+ * @brief split by the number of the image channels in 8x8 group
+ *
+ * @param offset: what is the number of bytes in a pixel and if is a power of 2
+ * rtfm the readme(TODO), right now the white paper
+ * */
 template<typename T>
 std::shared_ptr<BlockMatrix> channelSplitting(
     std::shared_ptr<std::vector<T>> vec,
@@ -47,6 +84,8 @@ std::shared_ptr<BlockMatrix> channelSplitting(
 
     size_t padWidth = w % 8;
     size_t padHeight = h % 8;
+
+    ValueFunction<T> determineValue = getFunctionPtr<T>(offset);
 
     for (int chan = 0; chan < numberOfChannels; chan++)
     {

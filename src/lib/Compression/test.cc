@@ -32,17 +32,20 @@ void printPixelFormatDetails(const SDL_PixelFormatDetails* details) {
 
 int main(int argc, char** argv)
 {
+    std::cout << "program started\n" << "\n" << std::endl;
     if (argc >= 2)
         std::cout << argv[1] << std::endl;
     else
         return 1;
 
+    std::cout << "image not loaded" << std::endl;
     SDL_Surface *surf = IMG_Load(argv[1]);
-    SDL_PixelFormat *format = &surf->format;
+    std::cout << "image loaded" << std::endl;
 
-    const SDL_PixelFormatDetails* details = SDL_GetPixelFormatDetails(*format);
+    //SDL_PixelFormat *format = &surf->format;
+    //const SDL_PixelFormatDetails* details = SDL_GetPixelFormatDetails(*format);
 
-    printPixelFormatDetails(details);
+    //printPixelFormatDetails(details);
 
     std::shared_ptr<std::vector<Uint8>> pix = 
         std::make_shared<std::vector<Uint8>>
@@ -53,8 +56,11 @@ int main(int argc, char** argv)
                                                           surf->format, 
                                                           std::move(pix));
 
+    std::cout << "essential image" << std::endl;
+
     Splitted testySplit;
     std::shared_ptr<BlockMatrix> vec = channelSplitting(essence.getPixels(), essence.getWidth(), essence.getHeight(), 3, 3);
+    std::cout << "channels splitted" << std::endl;
     testySplit.setChannels(vec);
     SDL_DestroySurface(surf);
 
