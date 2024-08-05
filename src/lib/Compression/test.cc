@@ -42,10 +42,10 @@ int main(int argc, char** argv)
     SDL_Surface *surf = IMG_Load(argv[1]);
     std::cout << "image loaded" << std::endl;
 
-    //SDL_PixelFormat *format = &surf->format;
-    //const SDL_PixelFormatDetails* details = SDL_GetPixelFormatDetails(*format);
+    SDL_PixelFormat *format = &surf->format;
+    const SDL_PixelFormatDetails* details = SDL_GetPixelFormatDetails(*format);
 
-    //printPixelFormatDetails(details);
+    printPixelFormatDetails(details);
 
     std::shared_ptr<std::vector<Uint8>> pix = 
         std::make_shared<std::vector<Uint8>>

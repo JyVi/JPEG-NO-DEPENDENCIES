@@ -21,3 +21,6 @@ $(pkg-config --cflags sdl3) $(pkg-config --libs sdl3)
 
 
 Thanks to the SDL discord from orlac and empyreanx
+
+Do not try to build with fsanitize address, sometimes it does not want to run
+I am sticking to Valgrind for bugs

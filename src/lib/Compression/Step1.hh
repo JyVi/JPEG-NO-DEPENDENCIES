@@ -1,5 +1,6 @@
 #pragma once
 #include "../DataStructure/ImageEssential.hxx"
+#include <SDL3/SDL_stdinc.h>
 #include <cassert>
 #include <utility>
 #include <array>
@@ -9,7 +10,7 @@
 typedef std::vector<std::shared_ptr<std::vector<std::unique_ptr<std::array<Uint8, 64>>>>> BlockMatrix;
 // Type alias for the function pointer
 template<typename T>
-using ValueFunction = Uint8(*)(int offset, int channel, size_t i, size_t j, size_t k, size_t n, int w, std::shared_ptr<std::vector<T>> vec);
+using ValueFunction = Uint8(*)(int offset, int channel, size_t i, size_t j, int k, int n, int w, std::shared_ptr<std::vector<T>> vec);
 
 class Splitted
 {
@@ -33,23 +34,22 @@ class Splitted
  * */
 template<typename T>
 Uint8 determineValueWithOffset(int offset, int channel, size_t i, 
-                               size_t j, size_t k, size_t n, int w, 
+                               size_t j, int k, int n, int w, 
                                std::shared_ptr<std::vector<T>> vec)
 {
-    if (offset != 0)
-        return (*vec)[(i + k) * w + (j + n * offset + channel)];
-    size_t position = (i + k) * w + (j + n);
-    assert(position < vec->size() && "Out of bound");
-    return ((*vec)[position] >> 8 * channel) & 0xff;
+    size_t position = (i + k) * w + (j + n * offset + channel);
+    assert(position < vec->size() && "Out of bound with offset");
+    return (*vec)[position];
+    //return ((*vec)[position] >> 8 * channel) & 0xff;
 }
 
 template<typename T>
 Uint8 determineValueWithoutOffset(int offset, int channel, size_t i, 
-                                  size_t j, size_t k, size_t n, int w, 
+                                  size_t j, int k, int n, int w, 
                                   std::shared_ptr<std::vector<T>> vec)
 {
     size_t position = (i + k) * w + (j + n);
-    assert(position < vec->size() && "Out of bound withoutOffset");
+    assert(position < vec->size() && "Out of bound without offset");
     return ((*vec)[position] >> 8 * channel) & 0xff;
 }
 
@@ -59,6 +59,57 @@ ValueFunction<T> getFunctionPtr(int offset)
     if (offset != 0)
         return &determineValueWithOffset<T>;
     return &determineValueWithoutOffset<T>;
+}
+
+template<typename T>
+std::unique_ptr<std::array<Uint8, 64>> blockwidthPadding(int offset, 
+                                                         int channel, 
+                                                         size_t i,
+                                                         int deltaW,
+                                                         size_t w,
+                                                         std::shared_ptr<std::vector<T>> vec,
+                                                         ValueFunction<T> determineValue)
+{
+    std:: unique_ptr<std::array<Uint8, 64>> block = 
+        std::make_unique<std::array<Uint8, 64>>();
+    for (int k = 0; k < 8; k++)
+    {
+        for (int l = 0; l < deltaW; l++)
+            (*block)[k * 8 + l] = determineValue(offset, channel, i, w, k, l, w, vec);
+        for (int m = 0; m < 8 - deltaW; m++)
+            (*block)[k * 8 + m + deltaW] = determineValue(offset, channel, i, w, k, i - m, w, vec);
+    }
+    return block;
+}
+
+/*
+ * (h - 8 - 1) for the last row block 
+ * (j) because i am doing every columns
+ * (k) for the non impacted rows 
+ * (deltaH - m + 1) because I want to access the mirrored row 
+ * */
+template<typename T>
+void blockHeightPadding(int offset, int channel, int deltaH, size_t h,
+                        size_t w, std::shared_ptr<std::vector<T>> vec,
+                        ValueFunction<T> determineValue, 
+                        std::shared_ptr<std::vector<std::unique_ptr<std::array<Uint8, 64>>>> channelVector)
+{
+    for (size_t j = 0; j < w; j++)
+    {
+        std::unique_ptr<std::array<Uint8, 64>> block = 
+            std::make_unique<std::array<Uint8, 64>>();
+        for (int k = 0; k < deltaH; k++)
+        {
+            for (int l = 0; l < 8; l++)
+                (*block)[k * 8 + l] = determineValue(offset, channel, h - 9, j, k, l, w, vec);
+        }
+        for (int m = deltaH; m < 8; m++)
+        {
+            for (int n = 0; n < 8; n++)
+                (*block)[m * 8 + n] = determineValue(offset, channel, h - 9, j, deltaH - m + 1, n, w, vec);
+        }
+        channelVector->push_back(block);
+    }
 }
 
 /*
@@ -94,10 +145,10 @@ std::shared_ptr<BlockMatrix> channelSplitting(
 
         size_t cpt = 0;
         // TODO: do not forget about the padding
-
-        for (size_t i = 0; i < h; i += 8)
+        // maybe h - padwidth ? 
+        for (size_t i = 0; i < h - padHeight; i += 8)
         {
-            for (size_t j = 0; j < w; j += 8 * delta)
+            for (size_t j = 0; j < w - padWidth; j += 8 * delta)
             {
                 // blocking splitting
                 std::unique_ptr<std::array<Uint8, 64>> block = std::make_unique<std::array<Uint8, 64>>();
@@ -106,12 +157,24 @@ std::shared_ptr<BlockMatrix> channelSplitting(
                     // i * 8 + k, j * 8 + n: take into account the i,j += 8
                     for (size_t n = 0; n < 8; n++)
                     {
-                        (*block)[k * 8 + n] = determineValue(offset, chan, i, j, k, n, w, vec);
+                        (*block)[k * 8 + n] = determineValue(offset, chan, i,
+                                                             j, k, n, w, vec);
                     }
                 }
                 channel->push_back(std::move(block));
             }
+            // block padding
+            if (padWidth != 0)
+            {
+                std::unique_ptr<std::array<Uint8, 64>> block = 
+                    blockwidthPadding(offset, chan, i, padWidth, w, vec,
+                                      determineValue);
+                channel->push_back(std::move(block));
+            }
         }
+        if (padHeight != 0)
+            blockHeightPadding(offset, chan, padHeight, h, w, vec, 
+                               determineValue, channel);
     }
     return channels;
 }
