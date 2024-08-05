@@ -1,6 +1,5 @@
 #pragma once
 #include "../DataStructure/ImageEssential.hxx"
-#include <SDL3/SDL_stdinc.h>
 #include <cassert>
 #include <utility>
 #include <array>
@@ -108,7 +107,7 @@ void blockHeightPadding(int offset, int channel, int deltaH, size_t h,
             for (int n = 0; n < 8; n++)
                 (*block)[m * 8 + n] = determineValue(offset, channel, h - 9, j, deltaH - m + 1, n, w, vec);
         }
-        channelVector->push_back(block);
+        channelVector->push_back(std::move(block));
     }
 }
 
