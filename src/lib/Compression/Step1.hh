@@ -6,6 +6,7 @@
 #include <vector>
 #include <memory>
 
+// type defintion for the container of the splitted 8x8 block matrix
 typedef std::vector<std::shared_ptr<std::vector<std::unique_ptr<std::array<Uint8, 64>>>>> BlockMatrix;
 // Type alias for the function pointer
 template<typename T>
@@ -22,15 +23,6 @@ class Splitted
         std::shared_ptr<BlockMatrix> channels;
 };
 
-/*
- * TODO replace this to be a function pointer so its lighter on cpu without 
- * testing offset every time, only once, 
- * if (offset != 0)
- *      funptr* = vec[(i * 8 + k) * w + (j * 8 + n * offset + channel)]
- * else
- *      // no offset 
- *      funptr* = (vec[(i * 8 + k) * w + (j * 8 + n)] >> 8 * channel) & 0xff
- * */
 template<typename T>
 Uint8 determineValueWithOffset(int offset, int channel, size_t i, 
                                size_t j, int k, int n, int w, 
@@ -39,7 +31,6 @@ Uint8 determineValueWithOffset(int offset, int channel, size_t i,
     size_t position = (i + k) * w + (j + n * offset + channel);
     assert(position < vec->size() && "Out of bound with offset");
     return (*vec)[position];
-    //return ((*vec)[position] >> 8 * channel) & 0xff;
 }
 
 template<typename T>
@@ -177,3 +168,4 @@ std::shared_ptr<BlockMatrix> channelSplitting(
     }
     return channels;
 }
+

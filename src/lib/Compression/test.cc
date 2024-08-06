@@ -9,6 +9,8 @@
 #include <memory>
 #include <ostream>
 
+#include <numbers>
+
 void printPixelFormatDetails(const SDL_PixelFormatDetails* details) {
     std::cout << "SDL_PixelFormatDetails:\n"
               << "  format: " << details->format << "\n"
@@ -37,6 +39,8 @@ int main(int argc, char** argv)
         std::cout << argv[1] << std::endl;
     else
         return 1;
+
+    std::cout << std::numbers::pi << std::endl;
 
     std::cout << "image not loaded" << std::endl;
     SDL_Surface *surf = IMG_Load(argv[1]);
