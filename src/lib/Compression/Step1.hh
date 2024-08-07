@@ -7,40 +7,55 @@
 #include <memory>
 
 // type defintion for the container of the splitted 8x8 block matrix
-typedef std::vector<std::shared_ptr<std::vector<std::unique_ptr<std::array<Uint8, 64>>>>> BlockMatrix;
+// unique ptr for future multi threading purpose
+typedef std::vector<std::shared_ptr<std::vector<std::unique_ptr<std::array<char, 64>>>>> BlockMatrix;
 // Type alias for the function pointer
 template<typename T>
-using ValueFunction = Uint8(*)(int offset, int channel, size_t i, size_t j, int k, int n, int w, std::shared_ptr<std::vector<T>> vec);
+using ValueFunction = char(*)(int offset, int channel, size_t i, size_t j, int k, int n, int w, std::shared_ptr<std::vector<T>> vec);
 
 class Splitted
 {
     public:
         Splitted();
         ~Splitted();
-        void setChannels(std::shared_ptr<BlockMatrix> vec);
+
+        void setChannels(std::shared_ptr<BlockMatrix> vec, int width, 
+                         int height, int numberofchannels);
         std::shared_ptr<BlockMatrix> getChannels();
+
+        int getNumberofChannels();
+        int getBlockWidth();
+        int getBlockHeight();
+
     private:
+        void setNumberofChannels(int numberofchannels);
+        void setBlockWidth(int width);
+        void setBlockHeight(int height);
+
         std::shared_ptr<BlockMatrix> channels;
+        int numberofChannels;
+        int blockWidth;
+        int blockHeight;
 };
 
 template<typename T>
-Uint8 determineValueWithOffset(int offset, int channel, size_t i, 
+char determineValueWithOffset(int offset, int channel, size_t i, 
                                size_t j, int k, int n, int w, 
                                std::shared_ptr<std::vector<T>> vec)
 {
     size_t position = (i + k) * w + (j + n * offset + channel);
     assert(position < vec->size() && "Out of bound with offset");
-    return (*vec)[position];
+    return (*vec)[position] - 128;
 }
 
 template<typename T>
-Uint8 determineValueWithoutOffset(int offset, int channel, size_t i, 
+char determineValueWithoutOffset(int offset, int channel, size_t i, 
                                   size_t j, int k, int n, int w, 
                                   std::shared_ptr<std::vector<T>> vec)
 {
     size_t position = (i + k) * w + (j + n);
     assert(position < vec->size() && "Out of bound without offset");
-    return ((*vec)[position] >> 8 * channel) & 0xff;
+    return (((*vec)[position] >> 8 * channel) & 0xff) - 128;
 }
 
 template<typename T>
@@ -52,7 +67,7 @@ ValueFunction<T> getFunctionPtr(int offset)
 }
 
 template<typename T>
-std::unique_ptr<std::array<Uint8, 64>> blockwidthPadding(int offset, 
+std::unique_ptr<std::array<char, 64>> blockwidthPadding(int offset, 
                                                          int channel, 
                                                          size_t i,
                                                          int deltaW,
@@ -60,8 +75,8 @@ std::unique_ptr<std::array<Uint8, 64>> blockwidthPadding(int offset,
                                                          std::shared_ptr<std::vector<T>> vec,
                                                          ValueFunction<T> determineValue)
 {
-    std:: unique_ptr<std::array<Uint8, 64>> block = 
-        std::make_unique<std::array<Uint8, 64>>();
+    std:: unique_ptr<std::array<char, 64>> block = 
+        std::make_unique<std::array<char, 64>>();
     for (int k = 0; k < 8; k++)
     {
         for (int l = 0; l < deltaW; l++)
@@ -82,12 +97,12 @@ template<typename T>
 void blockHeightPadding(int offset, int channel, int deltaH, size_t h,
                         size_t w, std::shared_ptr<std::vector<T>> vec,
                         ValueFunction<T> determineValue, 
-                        std::shared_ptr<std::vector<std::unique_ptr<std::array<Uint8, 64>>>> channelVector)
+                        std::shared_ptr<std::vector<std::unique_ptr<std::array<char, 64>>>> channelVector)
 {
     for (size_t j = 0; j < w; j++)
     {
-        std::unique_ptr<std::array<Uint8, 64>> block = 
-            std::make_unique<std::array<Uint8, 64>>();
+        std::unique_ptr<std::array<char, 64>> block = 
+            std::make_unique<std::array<char, 64>>();
         for (int k = 0; k < deltaH; k++)
         {
             for (int l = 0; l < 8; l++)
@@ -123,25 +138,22 @@ std::shared_ptr<BlockMatrix> channelSplitting(
     size_t delta = 0;
     offset == 0 ? delta = 1 : delta = numberOfChannels;
 
-    size_t padWidth = w % 8;
+    size_t padWidth = w * numberOfChannels % 8;
     size_t padHeight = h % 8;
 
     ValueFunction<T> determineValue = getFunctionPtr<T>(offset);
 
     for (int chan = 0; chan < numberOfChannels; chan++)
     {
-        (*channels)[chan] = std::make_shared<std::vector<std::unique_ptr<std::array<Uint8, 64>>>>();
-        std::shared_ptr<std::vector<std::unique_ptr<std::array<Uint8, 64>>>> channel = (*channels)[chan];
+        (*channels)[chan] = std::make_shared<std::vector<std::unique_ptr<std::array<char, 64>>>>();
+        std::shared_ptr<std::vector<std::unique_ptr<std::array<char, 64>>>> channel = (*channels)[chan];
 
-        size_t cpt = 0;
-        // TODO: do not forget about the padding
-        // maybe h - padwidth ? 
         for (size_t i = 0; i < h - padHeight; i += 8)
         {
             for (size_t j = 0; j < w - padWidth; j += 8 * delta)
             {
                 // blocking splitting
-                std::unique_ptr<std::array<Uint8, 64>> block = std::make_unique<std::array<Uint8, 64>>();
+                std::unique_ptr<std::array<char, 64>> block = std::make_unique<std::array<char, 64>>();
                 for (size_t k = 0; k < 8; k++)
                 {
                     // i * 8 + k, j * 8 + n: take into account the i,j += 8
@@ -156,7 +168,7 @@ std::shared_ptr<BlockMatrix> channelSplitting(
             // block padding
             if (padWidth != 0)
             {
-                std::unique_ptr<std::array<Uint8, 64>> block = 
+                std::unique_ptr<std::array<char, 64>> block = 
                     blockwidthPadding(offset, chan, i, padWidth, w, vec,
                                       determineValue);
                 channel->push_back(std::move(block));

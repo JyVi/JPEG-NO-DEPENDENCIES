@@ -41,6 +41,19 @@ int main(int argc, char** argv)
         return 1;
 
     std::cout << std::numbers::pi << std::endl;
+    std::cout << std::numbers::sqrt2_v<float> << std::endl;
+    std::cout << 1.0f/2.0f * std::numbers::sqrt2_v<float> << std::endl;
+
+    float floaty = 1.0f/2.0f * std::numbers::sqrt2_v<float>;
+    Uint8 charry = 255;
+    Uint8 charry1 = 127;
+    Uint8 charry2 = 128;
+    Uint8 charry3 = 200;
+    Uint8 charry4 = 200 - 128;
+    Uint8 charry5 = 40 - 128;
+
+    std::cout << floaty << std::endl;
+    std::cout << charry  << " " << charry1 << " " << charry2 << " " << charry3 << " " << charry4 << " " << charry5 << std::endl;
 
     std::cout << "image not loaded" << std::endl;
     SDL_Surface *surf = IMG_Load(argv[1]);
@@ -65,7 +78,7 @@ int main(int argc, char** argv)
     Splitted testySplit;
     std::shared_ptr<BlockMatrix> vec = channelSplitting(essence.getPixels(), essence.getWidth(), essence.getHeight(), 3, 3);
     std::cout << "channels splitted" << std::endl;
-    testySplit.setChannels(vec);
+    testySplit.setChannels(vec, essence.getWidth(), essence.getHeight(), 3);
     SDL_DestroySurface(surf);
 
     return 0;
