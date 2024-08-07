@@ -1,5 +1,6 @@
 #include "../DataStructure/ImageEssential.hxx"
 #include "Step1.hh"
+#include "Step2.hh"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_pixels.h>
 #include <SDL3/SDL_stdinc.h>
@@ -8,8 +9,8 @@
 #include <iostream>
 #include <memory>
 #include <ostream>
-
 #include <numbers>
+#include <eigen3/Eigen/Dense>
 
 void printPixelFormatDetails(const SDL_PixelFormatDetails* details) {
     std::cout << "SDL_PixelFormatDetails:\n"
@@ -75,10 +76,33 @@ int main(int argc, char** argv)
 
     std::cout << "essential image" << std::endl;
 
-    Splitted testySplit;
+    /*
+    std::array<char, 64> charArray = {0, 1, 2, 3, 4, 5, 6, 7,
+                                      8, 9, 10, 11, 12, 13, 14, 15,
+                                      16, 17, 18, 19, 20, 21, 22, 23,
+                                      24, 25, 26, 27, 28, 29, 30, 31,
+                                      32, 33, 34, 35, 36, 37, 38, 39,
+                                      40, 41, 42, 43, 44, 45, 46, 47,
+                                      48, 49, 50, 51, 52, 53, 54, 55,
+                                      56, 57, 58, 59, 60, 61, 62, 63};
+
+    Eigen::Map<Eigen::Matrix<char, 8, 8>> mapCharArray(charArray.data());
+
+    std::cout << mapCharArray << std::endl;
+
+    Eigen::Matrix<float, 8, 8> matrixFromMap = mapCharArray.cast<float>();
+
+    std::cout << matrixFromMap << std::endl;
+    matrixFromMap(0,0) = 1.4f;
+    std::cout << matrixFromMap(0,0) << std::endl;
+    */
+    std::shared_ptr<Splitted> testySplit = std::make_shared<Splitted>();
     std::shared_ptr<BlockMatrix> vec = channelSplitting(essence.getPixels(), essence.getWidth(), essence.getHeight(), 3, 3);
     std::cout << "channels splitted" << std::endl;
-    testySplit.setChannels(vec, essence.getWidth(), essence.getHeight(), 3);
+    testySplit.get()->setChannels(vec, essence.getWidth(), essence.getHeight(), 3);
+
+    std::shared_ptr<BlockMatrixtoQuant> ToQuant = DCTTransform::applyingDCT(testySplit);
+
     SDL_DestroySurface(surf);
 
     return 0;
