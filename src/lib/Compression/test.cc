@@ -1,6 +1,7 @@
 #include "../DataStructure/ImageEssential.hxx"
 #include "Step1.hh"
 #include "Step2.hh"
+#include "Step3.hh"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_pixels.h>
 #include <SDL3/SDL_stdinc.h>
@@ -99,9 +100,11 @@ int main(int argc, char** argv)
     std::shared_ptr<Splitted> testySplit = std::make_shared<Splitted>();
     std::shared_ptr<BlockMatrix> vec = channelSplitting(essence.getPixels(), essence.getWidth(), essence.getHeight(), 3, 3);
     std::cout << "channels splitted" << std::endl;
-    testySplit.get()->setChannels(vec, essence.getWidth(), essence.getHeight(), 3);
+    testySplit.get()->setChannels(vec, essence.getWidth(), essence.getHeight(), 3, 3);
 
     std::shared_ptr<BlockMatrixtoQuant> ToQuant = DCTTransform::applyingDCT(testySplit);
+
+    Quantification::QuantificationProcess(ToQuant, testySplit);
 
     SDL_DestroySurface(surf);
 
