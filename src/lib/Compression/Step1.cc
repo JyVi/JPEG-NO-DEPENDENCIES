@@ -5,10 +5,17 @@ Splitted::Splitted() {}
 Splitted::~Splitted() {}
 
 void Splitted::setChannels(std::shared_ptr<BlockMatrix> vec, int width, 
-                           int height, int numberOfchannels)
+                           int height, int numberOfchannels, int offset)
 {
-    this->setBlockWidth(width);
-    this->setBlockHeight(height);
+    int blockWidth;
+    if (offset == 0)
+        blockWidth = width / 8 + (width % 8 == 0 ? 0 : 1);
+    else
+        blockWidth = (width / numberOfchannels) / 8 + 
+            ((width / numberOfchannels) % 8 == 0 ? 0: 1);
+
+    this->setBlockWidth(blockWidth);
+    this->setBlockHeight(height / 8 + (height % 8 == 0 ? 0 : 1));
     this->setNumberofChannels(numberOfchannels);
     this->channels = std::move(vec);
 }

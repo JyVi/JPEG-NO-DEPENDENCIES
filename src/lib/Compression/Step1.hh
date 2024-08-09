@@ -20,7 +20,7 @@ class Splitted
         ~Splitted();
 
         void setChannels(std::shared_ptr<BlockMatrix> vec, int width, 
-                         int height, int numberofchannels);
+                         int height, int numberofchannels, int offset);
         std::shared_ptr<BlockMatrix> getChannels();
 
         int getNumberofChannels();
